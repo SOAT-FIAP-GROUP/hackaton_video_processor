@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 )
 
 type Config struct {
@@ -15,9 +16,20 @@ type Config struct {
 	AWSS3Bucket         string `env:"AWS_S3_BUCKET,required"`
 	AWSSQSQueueName     string `env:"AWS_SQS_QUEUE_NAME,required"`
 	TempPath            string `env:"TEMP_PATH,required"`
+	DBHost              string `env:"DB_HOST,required"`
+	DBPort              int    `env:"DB_PORT,required"`
+	DBUser              string `env:"DB_USER,required"`
+	DBPassword          string `env:"DB_PASSWORD,required"`
+	DBName              string `env:"DB_NAME,required"`
+	DBSSLMode           string `env:"DB_SSL_MODE,required"`
 }
 
-func NewConfig() *Config {
+func NewConfig() (*Config, error) {
+	dbPort, err := strconv.Atoi(os.Getenv("DB_PORT"))
+	if err != nil {
+		return nil, fmt.Errorf("invalid DB_PORT: %v", err)
+	}
+
 	return &Config{
 		CognitoClientSecret: os.Getenv("COGNITO_CLIENT_SECRET"),
 		CognitoClientID:     os.Getenv("COGNITO_CLIENT_ID"),
@@ -28,7 +40,13 @@ func NewConfig() *Config {
 		AWSS3Bucket:         os.Getenv("AWS_S3_BUCKET"),
 		AWSSQSQueueName:     os.Getenv("AWS_SQS_QUEUE_NAME"),
 		TempPath:            os.Getenv("TEMP_PATH"),
-	}
+		DBHost:              os.Getenv("DB_HOST"),
+		DBPort:              dbPort,
+		DBUser:              os.Getenv("DB_USER"),
+		DBPassword:          os.Getenv("DB_PASSWORD"),
+		DBName:              os.Getenv("DB_NAME"),
+		DBSSLMode:           os.Getenv("DB_SSL_MODE"),
+	}, nil
 }
 
 func (c *Config) ValidateCognitoConfig() error {
@@ -98,6 +116,30 @@ func (c *Config) ValidateSQSConfig() error {
 
 	if c.AWSSQSQueueName == "" {
 		return fmt.Errorf("AWS SQS queue name is required")
+	}
+
+	return nil
+}
+
+func (c *Config) ValidateDBConfig() error {
+	if c.DBHost == "" {
+		return fmt.Errorf("DB host is required")
+	}
+
+	if c.DBUser == "" {
+		return fmt.Errorf("DB user is required")
+	}
+
+	if c.DBPassword == "" {
+		return fmt.Errorf("DB password is required")
+	}
+
+	if c.DBName == "" {
+		return fmt.Errorf("DB name is required")
+	}
+
+	if c.DBSSLMode == "" {
+		return fmt.Errorf("DB SSL mode is required")
 	}
 
 	return nil
