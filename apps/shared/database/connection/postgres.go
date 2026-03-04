@@ -1,6 +1,7 @@
 package connection
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -20,9 +21,9 @@ var m = []migrations.Migration{
 		Up: `
 			CREATE TABLE IF NOT EXISTS videos (
 			    id SERIAL PRIMARY KEY,
-			    title TEXT NOT NULL,
-			    description TEXT,
-			    upload_time TIMESTAMP NOT NULL DEFAULT NOW(),
+			    user_id TEXT NOT NULL,
+			    name TEXT NOT NULL,
+			    processed_at TIMESTAMP NOT NULL DEFAULT NOW(),
 			    path TEXT NOT NULL
 			    );`,
 		Down: `DROP TABLE IF EXISTS videos;`,
@@ -69,6 +70,29 @@ func (p PostgresConnection) Close() error {
 		return fmt.Errorf("failed to close database connection: %w", err)
 	}
 	return nil
+}
+
+func (p PostgresConnection) QueryRow(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	transaction, err := p.client.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+
+	rows, err := transaction.QueryContext(ctx, query, args...)
+	if err != nil {
+		err := transaction.Rollback()
+		if err != nil {
+			return nil, fmt.Errorf("failed to rollback transaction: %w", err)
+		}
+		return nil, fmt.Errorf("failed to execute query: %w", err)
+	}
+
+	err = transaction.Commit()
+	if err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return rows, nil
 }
 
 func runMigrations(db *sql.DB, migrations []migrations.Migration) error {
