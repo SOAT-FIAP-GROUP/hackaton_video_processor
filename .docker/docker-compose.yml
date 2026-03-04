@@ -1,0 +1,15 @@
+name: "Video Processor"
+services:
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: video_processor
+    ports:
+      - "5432:5432"
+    networks:
+      - video_processor_network
+networks:
+    video_processor_network:
+        driver: bridge
