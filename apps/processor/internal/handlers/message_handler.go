@@ -7,19 +7,22 @@ import (
 	"log"
 	"processor/internal/usecase"
 	"shared/SQS"
+	"shared/database/repository"
 	"shared/storage/S3"
 	"strings"
 )
 
 type MessageHandler struct {
-	s3 *S3.S3Client
-	p  *usecase.VideoProcessingUseCase
+	s3   *S3.S3Client
+	p    *usecase.VideoProcessingUseCase
+	repo *repository.VideoRepository
 }
 
-func NewMessageHandler(s3 *S3.S3Client, processor *usecase.VideoProcessingUseCase) *MessageHandler {
+func NewMessageHandler(s3 *S3.S3Client, processor *usecase.VideoProcessingUseCase, repo *repository.VideoRepository) *MessageHandler {
 	return &MessageHandler{
-		s3: s3,
-		p:  processor,
+		s3:   s3,
+		p:    processor,
+		repo: repo,
 	}
 }
 
@@ -54,6 +57,18 @@ func (h *MessageHandler) HandleMessage(ctx context.Context, message []byte) erro
 	err = h.p.DeleteLocalFiles(zipPath, framesPath, key)
 	if err != nil {
 		log.Printf("error deleting files: %s", err)
+	}
+
+	entity := &repository.VideoEntity{
+		UserID:     m.UserID,
+		Name:       m.UserName,
+		Path:       s3FileName,
+		UploadedAt: m.UploadAt,
+	}
+
+	err = h.repo.CreateVideo(ctx, entity)
+	if err != nil {
+		log.Printf("error saving video to database: %s", err)
 	}
 
 	log.Printf("Downloaded video: %s", key)
