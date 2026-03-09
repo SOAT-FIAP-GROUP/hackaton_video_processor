@@ -124,6 +124,8 @@ func (c *CognitoAuth) ParseToken(tokenString string) (*domain.Claims, error) {
 			claims.UserID = *attr.Value
 		case "email":
 			claims.Email = *attr.Value
+		case "name":
+			claims.Name = *attr.Value
 		}
 	}
 
