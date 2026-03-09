@@ -10,19 +10,22 @@ import (
 	"shared/database/repository"
 	"shared/storage/S3"
 	"strings"
+	"time"
 )
 
 type MessageHandler struct {
-	s3   *S3.S3Client
-	p    *usecase.VideoProcessingUseCase
-	repo *repository.VideoRepository
+	s3      *S3.S3Client
+	p       *usecase.VideoProcessingUseCase
+	repo    *repository.VideoRepository
+	emitter *SQS.SQSEmitter
 }
 
-func NewMessageHandler(s3 *S3.S3Client, processor *usecase.VideoProcessingUseCase, repo *repository.VideoRepository) *MessageHandler {
+func NewMessageHandler(s3 *S3.S3Client, processor *usecase.VideoProcessingUseCase, repo *repository.VideoRepository, emitter *SQS.SQSEmitter) *MessageHandler {
 	return &MessageHandler{
-		s3:   s3,
-		p:    processor,
-		repo: repo,
+		s3:      s3,
+		p:       processor,
+		repo:    repo,
+		emitter: emitter,
 	}
 }
 
@@ -85,6 +88,26 @@ func (h *MessageHandler) HandleMessage(ctx context.Context, message []byte) erro
 	}
 
 	log.Printf("Downloaded video: %s", key)
+
+	notification := SQS.NotificationMessage{
+		ProcessingID:     entity.UserID,
+		UserName:         m.UserName,
+		UserEmail:        m.UserEmail,
+		UserID:           m.UserID,
+		NotificationDate: time.Now(),
+	}
+
+	jsonNotification, err := json.Marshal(notification)
+	if err != nil {
+		log.Printf("error marshalling notification message: %s", err)
+	}
+
+	r, err := h.emitter.SendMessage(ctx, jsonNotification)
+	if err != nil {
+		log.Printf("error sending notification message: %s", err)
+	}
+
+	log.Printf("Notification sent! Message ID: %s", r)
 
 	return nil
 }

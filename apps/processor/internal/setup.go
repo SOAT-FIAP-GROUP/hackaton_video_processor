@@ -53,7 +53,8 @@ func NewSetup() (*Setup, error) {
 		return nil, fmt.Errorf("Failed to create SQS client: %v", err)
 	}
 
-	receiver := SQS.NewSQSReceiver(c.AWSSQSQueueName, client)
+	receiver := SQS.NewSQSReceiver(c.AWSSQSQueueNameVideoProcessing, client)
+	emitter := SQS.NewSQSEmitter(c.AWSSQSQueueNameNotification, client)
 
 	ctx := context.Background()
 
@@ -64,7 +65,7 @@ func NewSetup() (*Setup, error) {
 
 	vpuc := usecase.NewVideoProcessingUseCase(c.TempPath+"/frames", c.TempPath+"/zips")
 
-	handler := handlers.NewMessageHandler(s3, vpuc, videoRepository)
+	handler := handlers.NewMessageHandler(s3, vpuc, videoRepository, emitter)
 
 	err = createTempDirs(c.TempPath)
 	if err != nil {

@@ -43,7 +43,7 @@ func main() {
 		log.Fatalf("Failed to initialize SQS client: %v", err)
 	}
 
-	emitter := SQS.NewSQSEmitter(c.AWSSQSQueueName, sqs)
+	emitter := SQS.NewSQSEmitter(c.AWSSQSQueueNameVideoProcessing, sqs)
 
 	videoHandler := delivery.NewVideoHandler(s3, emitter)
 	userHandler := delivery.NewUserHandler(cognitoUseCase)
