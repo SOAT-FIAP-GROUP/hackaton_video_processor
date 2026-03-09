@@ -7,5 +7,6 @@ type VideoEntity struct {
 	UserID      string    `db:"user_id"`
 	Name        string    `db:"name"`
 	Path        string    `db:"path"`
+	UploadedAt  time.Time `db:"uploaded_at"`
 	ProcessedAt time.Time `db:"processed_at"`
 }
