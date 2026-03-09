@@ -34,15 +34,23 @@ func (h *MessageHandler) HandleMessage(ctx context.Context, message []byte) erro
 		return fmt.Errorf("error unmarshalling message: %s", err)
 	}
 
+	keyProcess := m.VideoPath
+
+	log.Println("Message received: ", m)
+
 	key, err := h.s3.DownloadToTempDir(ctx, m.VideoPath)
 	if err != nil {
 		return fmt.Errorf("error downloading video: %s", err)
 	}
 
+	log.Println("Downloaded from S3 for video. Process: ", keyProcess)
+
 	framesPath, zipPath, err := h.p.Process(key)
 	if err != nil {
 		return fmt.Errorf("error processing video: %s", err)
 	}
+
+	log.Println("Processed video. Process: ", keyProcess)
 
 	zipFileNameSlice := strings.Split(zipPath, "/")
 	zipFileName := zipFileNameSlice[len(zipFileNameSlice)-1]
@@ -54,10 +62,14 @@ func (h *MessageHandler) HandleMessage(ctx context.Context, message []byte) erro
 		return fmt.Errorf("error uploading file: %s", err)
 	}
 
+	log.Println("Uploaded file. Process: ", keyProcess)
+
 	err = h.p.DeleteLocalFiles(zipPath, framesPath, key)
 	if err != nil {
 		log.Printf("error deleting files: %s", err)
 	}
+
+	log.Println("Deleted local files. Process: ", keyProcess)
 
 	entity := &repository.VideoEntity{
 		UserID:     m.UserID,
