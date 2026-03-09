@@ -133,20 +133,22 @@ func (s *Setup) RunWorker(ctx context.Context) error {
 			return nil
 
 		default:
-			msg, err := s.r.Receive(ctx)
+			msg, err := s.r.Receive(ctx, int32(s.workers))
 			if err != nil {
 				close(msgCh)
 				wg.Wait()
 				return fmt.Errorf("failed to receive message: %v", err)
 			}
 
-			if msg.MessageId == "" {
+			if len(msg) == 0 {
 				log.Println("No messages received, waiting...")
 				time.Sleep(5 * time.Second)
 				continue
 			}
 
-			msgCh <- msg
+			for _, m := range msg {
+				msgCh <- m
+			}
 		}
 	}
 }

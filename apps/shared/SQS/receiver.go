@@ -17,27 +17,30 @@ func NewSQSReceiver(queueURL string, client *SQSClient) *SQSReceiver {
 	return &SQSReceiver{QueueURL: queueURL, client: client}
 }
 
-func (l *SQSReceiver) Receive(ctx context.Context) (SQSMessage, error) {
+func (l *SQSReceiver) Receive(ctx context.Context, maxMessagesReceived int32) ([]SQSMessage, error) {
 	result, err := l.client.client.ReceiveMessage(ctx, &sqs.ReceiveMessageInput{
 		QueueUrl:            aws.String(l.QueueURL),
-		MaxNumberOfMessages: 1,
+		MaxNumberOfMessages: maxMessagesReceived,
 		WaitTimeSeconds:     10,
 	})
 	if err != nil {
-		return SQSMessage{}, fmt.Errorf("error trying to receive a message: %w", err)
+		return nil, fmt.Errorf("error trying to receive a message: %w", err)
 	}
 
 	if len(result.Messages) == 0 {
-		return SQSMessage{}, nil
+		return nil, nil
 	}
 
-	msg := result.Messages[0]
+	var messages []SQSMessage
+	for _, msg := range result.Messages {
+		messages = append(messages, SQSMessage{
+			MessageId:     *msg.MessageId,
+			ReceiptHandle: *msg.ReceiptHandle,
+			Content:       []byte(*msg.Body),
+		})
+	}
 
-	return SQSMessage{
-		MessageId:     *msg.MessageId,
-		ReceiptHandle: *msg.ReceiptHandle,
-		Content:       []byte(*msg.Body),
-	}, nil
+	return messages, nil
 }
 
 func (l *SQSReceiver) AckMessage(ctx context.Context, messageId *string) error {
