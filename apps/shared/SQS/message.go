@@ -11,5 +11,15 @@ type SQSMessage struct {
 type BrokerMessage struct {
 	VideoPath string    `json:"video_path"`
 	UserID    string    `json:"user_id"`
+	UserName  string    `json:"user_name"`
+	UserEmail string    `json:"user_email"`
 	UploadAt  time.Time `json:"upload_at"`
+}
+
+type NotificationMessage struct {
+	ProcessingID     string    `json:"processamentoId"`
+	UserName         string    `json:"username"`
+	UserEmail        string    `json:"email"`
+	UserID           string    `json:"userId"`
+	NotificationDate time.Time `json:"notification_date"`
 }
