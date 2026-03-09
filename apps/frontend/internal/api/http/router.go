@@ -60,6 +60,7 @@ func AuthMiddleware(auth *usecase.CognitoAuth) gin.HandlerFunc {
 
 		c.Set("userID", claims.UserID)
 		c.Set("email", claims.Email)
+		c.Set("name", claims.Name)
 
 		c.Next()
 	}
