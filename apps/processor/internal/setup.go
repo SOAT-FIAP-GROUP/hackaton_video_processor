@@ -12,6 +12,7 @@ import (
 	"shared/database/connection"
 	"shared/database/repository"
 	"shared/storage/S3"
+	"sync"
 	"time"
 )
 
@@ -93,9 +94,35 @@ func createTempDirs(tempPath string) error {
 }
 
 func (s *Setup) RunWorker(ctx context.Context) error {
+	const numWorkers = 10
+	msgCh := make(chan SQS.SQSMessage, numWorkers)
+
+	var wg sync.WaitGroup
+	for range numWorkers {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for msg := range msgCh {
+				if err := s.h.HandleMessage(ctx, msg.Content); err != nil {
+					log.Println("Failed to handle message:", err)
+					continue
+				}
+
+				if err := s.r.AckMessage(ctx, &msg.ReceiptHandle); err != nil {
+					log.Println("Failed to ack message:", err)
+					continue
+				}
+
+				log.Println("Message acknowledged! ID:", msg.MessageId)
+			}
+		}()
+	}
+
 	for {
 		msg, err := s.r.Receive(ctx)
 		if err != nil {
+			close(msgCh)
+			wg.Wait()
 			return fmt.Errorf("failed to receive message: %v", err)
 		}
 
@@ -105,17 +132,6 @@ func (s *Setup) RunWorker(ctx context.Context) error {
 			continue
 		}
 
-		err = s.h.HandleMessage(ctx, msg.Content)
-		if err != nil {
-			log.Println("Failed to handle message:", err)
-			return fmt.Errorf("failed to handle message: %v", err)
-		}
-
-		err = s.r.AckMessage(ctx, &msg.ReceiptHandle)
-		if err != nil {
-			return fmt.Errorf("failed to ack message: %v", err)
-		}
-
-		log.Println("Message acknowledged! ID:", msg.MessageId)
+		msgCh <- msg
 	}
 }
