@@ -24,6 +24,7 @@ var m = []migrations.Migration{
 			    user_id TEXT NOT NULL,
 			    name TEXT NOT NULL,
 			    processed_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			    uploaded_at TIMESTAMP NOT NULL DEFAULT NOW(),
 			    path TEXT NOT NULL
 			    );`,
 		Down: `DROP TABLE IF EXISTS videos;`,
@@ -72,31 +73,34 @@ func (p PostgresConnection) Close() error {
 	return nil
 }
 
-func (p PostgresConnection) QueryRow(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+func (p PostgresConnection) QueryRow(ctx context.Context, query string, scan func(*sql.Rows) error, args ...interface{}) error {
 	transaction, err := p.client.Begin()
 	if err != nil {
-		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 
 	rows, err := transaction.QueryContext(ctx, query, args...)
 	if err != nil {
-		err := transaction.Rollback()
-		if err != nil {
-			return nil, fmt.Errorf("failed to rollback transaction: %w", err)
+		transaction.Rollback()
+		return fmt.Errorf("failed to execute query: %w", err)
+	}
+	defer rows.Close()
+
+	if rows.Next() {
+		if err := scan(rows); err != nil {
+			transaction.Rollback()
+			return fmt.Errorf("failed to scan row: %w", err)
 		}
-		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 
-	err = transaction.Commit()
-	if err != nil {
-		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+	if err := transaction.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	return rows, nil
+	return nil
 }
 
 func runMigrations(db *sql.DB, migrations []migrations.Migration) error {
-	// create migrations tracking table if it doesn't exist
 	_, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS schema_migrations (
 			version INT PRIMARY KEY,
@@ -109,7 +113,6 @@ func runMigrations(db *sql.DB, migrations []migrations.Migration) error {
 	}
 
 	for _, m := range migrations {
-		// check if this version was already applied
 		var exists bool
 		err := db.QueryRow(
 			"SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE version = $1)", m.Version,
@@ -123,7 +126,6 @@ func runMigrations(db *sql.DB, migrations []migrations.Migration) error {
 			continue
 		}
 
-		// run migration in a transaction so it rolls back on failure
 		tx, err := db.Begin()
 		if err != nil {
 			return fmt.Errorf("failed to begin transaction: %w", err)
