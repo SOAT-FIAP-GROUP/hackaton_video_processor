@@ -9,6 +9,8 @@ import (
 	"processor/internal/usecase"
 	"shared/SQS"
 	"shared/config"
+	"shared/database/connection"
+	"shared/database/repository"
 	"shared/storage/S3"
 	"time"
 )
@@ -32,6 +34,18 @@ func NewSetup() (*Setup, error) {
 		return nil, fmt.Errorf("SQS Config error: %v", err)
 	}
 
+	err = c.ValidateDBConfig()
+	if err != nil {
+		return nil, fmt.Errorf("DB Config error: %v", err)
+	}
+
+	dbConn, err := connection.CreatePostgresConnection(c.DBHost, c.DBUser, c.DBPassword, c.DBName, c.DBSSLMode, c.DBPort)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to connect to database: %v", err)
+	}
+
+	videoRepository := repository.NewVideoRepository(dbConn)
+
 	client, err := SQS.NewSQSClient(c.AWSRegion)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create SQS client: %v", err)
@@ -48,7 +62,7 @@ func NewSetup() (*Setup, error) {
 
 	vpuc := usecase.NewVideoProcessingUseCase(c.TempPath+"/frames", c.TempPath+"/zips")
 
-	handler := handlers.NewMessageHandler(s3, vpuc)
+	handler := handlers.NewMessageHandler(s3, vpuc, videoRepository)
 
 	err = createTempDirs(c.TempPath)
 	if err != nil {
