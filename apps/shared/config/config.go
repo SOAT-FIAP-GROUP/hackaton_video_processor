@@ -24,10 +24,10 @@ type Config struct {
 	DBSSLMode           string `env:"DB_SSL_MODE,required"`
 }
 
-func NewConfig() (*Config, error) {
+func NewConfig() *Config {
 	dbPort, err := strconv.Atoi(os.Getenv("DB_PORT"))
 	if err != nil {
-		return nil, fmt.Errorf("invalid DB_PORT: %v", err)
+		dbPort = 5432
 	}
 
 	return &Config{
@@ -46,7 +46,7 @@ func NewConfig() (*Config, error) {
 		DBPassword:          os.Getenv("DB_PASSWORD"),
 		DBName:              os.Getenv("DB_NAME"),
 		DBSSLMode:           os.Getenv("DB_SSL_MODE"),
-	}, nil
+	}
 }
 
 func (c *Config) ValidateCognitoConfig() error {
