@@ -46,6 +46,8 @@ func (h *VideoHandler) HandleUpload(c *gin.Context) {
 	defer file.Close()
 
 	userID := c.GetString("userID")
+	username := c.GetString("name")
+	userEmail := c.GetString("email")
 
 	log.Printf("Usuário logado: %s", userID)
 
@@ -87,6 +89,8 @@ func (h *VideoHandler) HandleUpload(c *gin.Context) {
 	brokerMessage := SQS.BrokerMessage{
 		VideoPath: filename,
 		UserID:    userID,
+		UserName:  username,
+		UserEmail: userEmail,
 		UploadAt:  time.Now(),
 	}
 
