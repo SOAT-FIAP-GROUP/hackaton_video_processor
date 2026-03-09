@@ -2,12 +2,15 @@ package usecase
 
 import (
 	"archive/zip"
+	"context"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -23,8 +26,8 @@ func NewVideoProcessingUseCase(framesDir, zipDir string) *VideoProcessingUseCase
 	}
 }
 
-func (v *VideoProcessingUseCase) Process(videoKey string) (string, string, error) {
-	frames, framesPath, err := v.extractFrames(videoKey)
+func (v *VideoProcessingUseCase) Process(ctx context.Context, videoKey string) (string, string, error) {
+	frames, framesPath, err := v.extractFrames(ctx, videoKey)
 	if err != nil {
 		return "", "", fmt.Errorf("error at video processing: %v", err)
 	}
@@ -42,7 +45,7 @@ func (v *VideoProcessingUseCase) Process(videoKey string) (string, string, error
 	return framesPath, zipPath, nil
 }
 
-func (v *VideoProcessingUseCase) extractFrames(videoPath string) ([]string, string, error) {
+func (v *VideoProcessingUseCase) extractFrames(ctx context.Context, videoPath string) ([]string, string, error) {
 	keySplit := strings.Split(videoPath, "/")
 	fileName := keySplit[len(keySplit)-1]
 	fileNameWithoutExtension := strings.Split(fileName, ".")[0]
@@ -55,17 +58,36 @@ func (v *VideoProcessingUseCase) extractFrames(videoPath string) ([]string, stri
 		return nil, "", fmt.Errorf("error at extracting frames: %v", err)
 	}
 
-	cmd := exec.Command("ffmpeg",
+	cmd := exec.CommandContext(ctx, "ffmpeg",
 		"-i", videoPath,
 		"-vf", "fps=1",
 		"-y",
 		framePattern,
 	)
 
-	out, err := cmd.CombinedOutput()
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setsid: true,
+	}
+
+	if err := cmd.Start(); err != nil {
+		return nil, "", fmt.Errorf("error starting ffmpeg: %w", err)
+	}
+
+	log.Printf("extractFrames: ffmpeg pid=%d, pgid=%d", cmd.Process.Pid, cmd.Process.Pid)
+
+	if err := cmd.Wait(); err != nil {
+		log.Printf("extractFrames: ffmpeg failed pid=%d ctx.Err=%v err=%v", cmd.Process.Pid, ctx.Err(), err)
+		return nil, "", fmt.Errorf("error extraction frames: %w", err)
+	}
+
+	/*if err := cmd.Run(); err != nil {
+		return nil, "", fmt.Errorf("error extraction frames: %w", err)
+	}
+	*/
+	/*out, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, "", fmt.Errorf("error extraction frames: %s", out)
-	}
+	}*/
 
 	frames, err := filepath.Glob(filepath.Join(zipPath, "*.png"))
 	if err != nil || len(frames) == 0 {
