@@ -27,6 +27,7 @@ func NewMessageHandler(s3 *S3.S3Client, processor *usecase.VideoProcessingUseCas
 }
 
 func (h *MessageHandler) HandleMessage(ctx context.Context, message []byte) error {
+	ctx = context.WithoutCancel(ctx)
 	var m SQS.BrokerMessage
 
 	err := json.Unmarshal(message, &m)
@@ -45,7 +46,7 @@ func (h *MessageHandler) HandleMessage(ctx context.Context, message []byte) erro
 
 	log.Println("Downloaded from S3 for video. Process: ", keyProcess)
 
-	framesPath, zipPath, err := h.p.Process(key)
+	framesPath, zipPath, err := h.p.Process(ctx, key)
 	if err != nil {
 		return fmt.Errorf("error processing video: %s", err)
 	}
