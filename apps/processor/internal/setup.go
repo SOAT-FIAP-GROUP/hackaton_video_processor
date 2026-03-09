@@ -17,9 +17,10 @@ import (
 )
 
 type Setup struct {
-	c *SQS.SQSClient
-	r *SQS.SQSReceiver
-	h *handlers.MessageHandler
+	c       *SQS.SQSClient
+	r       *SQS.SQSReceiver
+	h       *handlers.MessageHandler
+	workers int
 }
 
 func NewSetup() (*Setup, error) {
@@ -71,9 +72,10 @@ func NewSetup() (*Setup, error) {
 	}
 
 	return &Setup{
-		c: client,
-		r: receiver,
-		h: handler,
+		c:       client,
+		r:       receiver,
+		h:       handler,
+		workers: c.NumberWorkers,
 	}, nil
 }
 
@@ -94,11 +96,10 @@ func createTempDirs(tempPath string) error {
 }
 
 func (s *Setup) RunWorker(ctx context.Context) error {
-	const numWorkers = 10
-	msgCh := make(chan SQS.SQSMessage, numWorkers)
+	msgCh := make(chan SQS.SQSMessage, s.workers)
 
 	var wg sync.WaitGroup
-	for range numWorkers {
+	for range s.workers {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

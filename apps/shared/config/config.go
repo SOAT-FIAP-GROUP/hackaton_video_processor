@@ -22,12 +22,18 @@ type Config struct {
 	DBPassword          string `env:"DB_PASSWORD,required"`
 	DBName              string `env:"DB_NAME,required"`
 	DBSSLMode           string `env:"DB_SSL_MODE,required"`
+	NumberWorkers       int    `env:"NUMBER_WORKERS,required"`
 }
 
 func NewConfig() *Config {
 	dbPort, err := strconv.Atoi(os.Getenv("DB_PORT"))
 	if err != nil {
 		dbPort = 5432
+	}
+
+	workers, err := strconv.Atoi(os.Getenv("NUMBER_WORKERS"))
+	if err != nil {
+		workers = 5
 	}
 
 	return &Config{
@@ -46,6 +52,7 @@ func NewConfig() *Config {
 		DBPassword:          os.Getenv("DB_PASSWORD"),
 		DBName:              os.Getenv("DB_NAME"),
 		DBSSLMode:           os.Getenv("DB_SSL_MODE"),
+		NumberWorkers:       workers,
 	}
 }
 
