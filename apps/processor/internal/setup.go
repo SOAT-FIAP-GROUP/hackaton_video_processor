@@ -98,18 +98,21 @@ func createTempDirs(tempPath string) error {
 func (s *Setup) RunWorker(ctx context.Context) error {
 	msgCh := make(chan SQS.SQSMessage, s.workers)
 
+	procCtx, procCancel := context.WithCancel(context.Background())
+	defer procCancel()
+
 	var wg sync.WaitGroup
 	for range s.workers {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for msg := range msgCh {
-				if err := s.h.HandleMessage(ctx, msg.Content); err != nil {
+				if err := s.h.HandleMessage(procCtx, msg.Content); err != nil {
 					log.Println("Failed to handle message:", err)
 					continue
 				}
 
-				if err := s.r.AckMessage(ctx, &msg.ReceiptHandle); err != nil {
+				if err := s.r.AckMessage(procCtx, &msg.ReceiptHandle); err != nil {
 					log.Println("Failed to ack message:", err)
 					continue
 				}
@@ -120,19 +123,30 @@ func (s *Setup) RunWorker(ctx context.Context) error {
 	}
 
 	for {
-		msg, err := s.r.Receive(ctx)
-		if err != nil {
+		select {
+		case <-ctx.Done():
+			log.Println("Shutting down worker, draining in-flight messages...")
 			close(msgCh)
 			wg.Wait()
-			return fmt.Errorf("failed to receive message: %v", err)
-		}
+			procCancel()
+			log.Println("Worker shutdown complete.")
+			return nil
 
-		if msg.MessageId == "" {
-			log.Println("No messages received, waiting...")
-			time.Sleep(5 * time.Second)
-			continue
-		}
+		default:
+			msg, err := s.r.Receive(ctx)
+			if err != nil {
+				close(msgCh)
+				wg.Wait()
+				return fmt.Errorf("failed to receive message: %v", err)
+			}
 
-		msgCh <- msg
+			if msg.MessageId == "" {
+				log.Println("No messages received, waiting...")
+				time.Sleep(5 * time.Second)
+				continue
+			}
+
+			msgCh <- msg
+		}
 	}
 }
