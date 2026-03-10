@@ -26,7 +26,12 @@ type Setup struct {
 func NewSetup() (*Setup, error) {
 	c := config.NewConfig()
 
-	err := c.ValidateS3Config()
+	err := c.ValidateWorkerConfig()
+	if err != nil {
+		return nil, fmt.Errorf("worker Config error: %v", err)
+	}
+
+	err = c.ValidateS3Config()
 	if err != nil {
 		return nil, fmt.Errorf("s3 Config error: %v", err)
 	}
