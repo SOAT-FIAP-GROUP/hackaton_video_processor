@@ -1,6 +1,7 @@
 name: "Video Processor"
 services:
   db:
+    container_name: database
     image: postgres:latest
     environment:
       POSTGRES_USER: postgres
@@ -10,6 +11,71 @@ services:
       - "5432:5432"
     networks:
       - video_processor_network
+  cache:
+    image: redis:latest
+    container_name: cache
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - video_processor_network
+  api:
+    build:
+        context: ../.
+        dockerfile: .docker/api.Dockerfile
+    image: video_processor_api:latest
+    container_name: api
+    restart: unless-stopped
+    environment:
+      - AWS_ACCESS_KEY_ID=
+      - AWS_REGION=
+      - AWS_S3_BUCKET=
+      - AWS_SECRET_ACCESS_KEY=
+      - AWS_SQS_QUEUE_NAME_VIDEO_PROCESSING=
+      - AWS_SQS_QUEUE_NAME_NOTIFICATION=
+      - COGNITO_CLIENT_ID=
+      - COGNITO_CLIENT_SECRET=
+      - COGNITO_USER_POOL_ID=
+      - GIN_MODE=release
+      - API_PORT=8080
+      - TEMP_PATH=/unknown
+    ports:
+      - "8080:8080"
+    depends_on:
+        - db
+    networks:
+        - video_processor_network
+  worker:
+    build:
+      context: ../.
+      dockerfile: .docker/worker.Dockerfile
+    image: video_processor_worker:latest
+    container_name: worker
+    restart: unless-stopped
+    environment:
+      - AWS_ACCESS_KEY_ID=
+      - AWS_REGION=
+      - AWS_S3_BUCKET=
+      - AWS_SECRET_ACCESS_KEY=
+      - AWS_SQS_QUEUE_NAME_VIDEO_PROCESSING=
+      - AWS_SQS_QUEUE_NAME_NOTIFICATION=
+      - DB_HOST=db
+      - DB_NAME=video_processor
+      - DB_PASSWORD=password
+      - DB_PORT=5432
+      - DB_SSL_MODE=disable
+      - DB_USER=postgres
+      - TEMP_PATH=/mnt/media
+    volumes:
+      - media_data:/mnt/media
+    depends_on:
+      - db
+    networks:
+      - video_processor_network
+
 networks:
     video_processor_network:
         driver: bridge
+volumes:
+  media_data:
+    driver: local
