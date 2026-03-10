@@ -50,10 +50,12 @@ func main() {
 
 	router := delivery.SetupRouter(videoHandler, userHandler, cognitoUseCase)
 
-	fmt.Println("🎬 Servidor iniciado na porta 8080")
-	fmt.Println("📂 Acesse: http://localhost:8080")
+	fmt.Println("🎬 Servidor iniciado na porta", c.APIPort)
+	fmt.Println(fmt.Sprintf("📂 Acesse: http://localhost:%v", c.APIPort))
 
-	if err = router.Engine.Run(":8080"); err != nil {
+	addr := fmt.Sprintf(":%v", c.APIPort)
+
+	if err = router.Engine.Run(addr); err != nil {
 		log.Fatalf("Erro ao iniciar servidor: %v", err)
 	}
 }
