@@ -7,6 +7,7 @@ import (
 )
 
 type Config struct {
+	APIPort                        int    `env:"API_PORT,required"`
 	CognitoClientID                string `env:"COGNITO_CLIENT_ID,required"`
 	CognitoClientSecret            string `env:"COGNITO_CLIENT_SECRET,required"`
 	CognitoUserPoolID              string `env:"COGNITO_USER_POOL_ID,required"`
@@ -37,6 +38,11 @@ func NewConfig() *Config {
 		workers = 5
 	}
 
+	apiPort, err := strconv.Atoi(os.Getenv("API_PORT"))
+	if err != nil {
+		apiPort = 8080
+	}
+
 	return &Config{
 		CognitoClientSecret:            os.Getenv("COGNITO_CLIENT_SECRET"),
 		CognitoClientID:                os.Getenv("COGNITO_CLIENT_ID"),
@@ -55,6 +61,7 @@ func NewConfig() *Config {
 		DBName:                         os.Getenv("DB_NAME"),
 		DBSSLMode:                      os.Getenv("DB_SSL_MODE"),
 		NumberWorkers:                  workers,
+		APIPort:                        apiPort,
 	}
 }
 
@@ -103,10 +110,6 @@ func (c *Config) ValidateS3Config() error {
 		return fmt.Errorf("AWS S3 bucket name is required")
 	}
 
-	if c.TempPath == "" {
-		return fmt.Errorf("Temp path is required")
-	}
-
 	return nil
 }
 
@@ -153,6 +156,14 @@ func (c *Config) ValidateDBConfig() error {
 
 	if c.DBSSLMode == "" {
 		return fmt.Errorf("DB SSL mode is required")
+	}
+
+	return nil
+}
+
+func (c *Config) ValidateWorkerConfig() error {
+	if c.TempPath == "" {
+		return fmt.Errorf("Temp path is required")
 	}
 
 	return nil
