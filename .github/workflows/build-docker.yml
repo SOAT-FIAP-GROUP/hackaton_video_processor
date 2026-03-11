@@ -24,7 +24,7 @@ jobs:
         id: build1
         run: |
           IMAGE=${{ secrets.DOCKER_USERNAME }}/video_processor_api:latest
-          docker build -t $IMAGE ./.docker/api.Dockerfile
+          docker build -t $IMAGE .docker/api.Dockerfile
           docker push $IMAGE
           echo "image=$IMAGE" >> $GITHUB_OUTPUT
 
@@ -32,6 +32,6 @@ jobs:
         id: build2
         run: |
           IMAGE=${{ secrets.DOCKER_USERNAME }}/video_processor_worker:latest
-          docker build -t $IMAGE ./.docker/api.Dockerfile
+          docker build -t $IMAGE .docker/worker.Dockerfile
           docker push $IMAGE
           echo "image=$IMAGE" >> $GITHUB_OUTPUT
