@@ -24,18 +24,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set Docker image variable API
+      - name: Set Docker images variables
         run: |
           DOCKER_IMAGE_API="${{ secrets.DOCKER_USERNAME }}/video_processor_api:latest"
-          echo "DOCKER_IMAGE_API=$DOCKER_IMAGE_API" >> $GITHUB_ENV
-
-      - name: Set Docker image variable WORKER
-        run: |
           DOCKER_IMAGE_WORKER="${{ secrets.DOCKER_USERNAME }}/video_processor_worker:latest"
           echo "DOCKER_IMAGE_WORKER=$DOCKER_IMAGE_WORKER" >> $GITHUB_ENV
+          echo "DOCKER_IMAGE_API=$DOCKER_IMAGE_API" >> $GITHUB_ENV
 
-      - name: Render Deployment
-        run: envsubst < k8s/deployment.yaml > k8s/deployment_rendered.yaml
+      - name: Render Deployments
+        run: |
+          envsubst < k8s/api/deployment.yaml > k8s/api/deployment_rendered.yaml
+          envsubst < k8s/worker/deployment.yaml > k8s/worker/deployment_rendered.yaml
 
       - name: Configure kubectl
         uses: aws-actions/configure-aws-credentials@v4
@@ -50,10 +49,11 @@ jobs:
 #          SPRING_ACTIVE_PROFILE=$(aws ssm get-parameter --name "SPRING_ACTIVE_PROFILE" --with-decryption --query "Parameter.Value" --output text)
 #          echo "SPRING_ACTIVE_PROFILE=$SPRING_ACTIVE_PROFILE" >> $GITHUB_OUTPUT
 
-#      - name: Render ConfigMap
-#        run: |
+      - name: Render ConfigMaps
+        run: |
 #          export SPRING_ACTIVE_PROFILE="${{ steps.ssm.outputs.SPRING_ACTIVE_PROFILE }}"
-#          envsubst < k8s/configmap.yaml > k8s/configmap_rendered.yaml
+          envsubst < k8s/api/configmap.yaml > k8s/api/configmap_rendered.yaml
+          envsubst < k8s/worker/configmap.yaml > k8s/worker/configmap_rendered.yaml
 
       - name: Update kubeconfig
         run: aws eks update-kubeconfig --name hakaton-app-dev --region ${{ vars.AWS_REGION }}
@@ -61,4 +61,5 @@ jobs:
       - name: Apply Kubernetes manifests
         run: |
           kubectl apply -f k8s/
-          kubectl rollout status deployment/notificacao-app
+          kubectl rollout status deployment/video-processor-api-app
+          kubectl rollout status deployment/video-processor-worker-app

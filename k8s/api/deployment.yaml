@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: video-processor-api-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: video-processor-api-app
+  template:
+    metadata:
+      labels:
+        app: video-processor-api-app
+    spec:
+      containers:
+      - name: video-processor-api-container
+        image: ${DOCKER_IMAGE_API}
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        env:
+        - name: AWS_S3_BUCKET
+          valueFrom:
+            configMapKeyRef:
+              name: video-processor-api-config
+              key: aws.bucket.name
+        - name: AWS_SQS_QUEUE_NAME_VIDEO_PROCESSING
+          valueFrom:
+            configMapKeyRef:
+              name: video-processor-api-config
+              key: aws.queue.name.videoprocessing
+        - name: AWS_SQS_QUEUE_NAME_NOTIFICATION
+          valueFrom:
+            configMapKeyRef:
+              name: video-processor-api-config
+              key: aws.queue.name.notification
+        resources:
+          requests:
+            cpu: "100m"
+            memory: 200Mi
+          limits:
+            cpu: "300m"
+            memory: 400Mi
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 120
+          periodSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 120
+          periodSeconds: 5
