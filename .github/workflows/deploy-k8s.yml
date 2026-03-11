@@ -1,0 +1,64 @@
+name: Deploy to Kubernetes
+
+on:
+  workflow_run:
+    workflows: ["Build Docker Image"]
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      force-deploy:
+        description: 'Força a execução do deploy'
+        required: false
+        default: 'true'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event.inputs.force-deploy == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set Docker image variable API
+        run: |
+          DOCKER_IMAGE_API="${{ secrets.DOCKER_USERNAME }}/video_processor_api:latest"
+          echo "DOCKER_IMAGE_API=$DOCKER_IMAGE_API" >> $GITHUB_ENV
+
+      - name: Set Docker image variable WORKER
+        run: |
+          DOCKER_IMAGE_WORKER="${{ secrets.DOCKER_USERNAME }}/video_processor_worker:latest"
+          echo "DOCKER_IMAGE_WORKER=$DOCKER_IMAGE_WORKER" >> $GITHUB_ENV
+
+      - name: Render Deployment
+        run: envsubst < k8s/deployment.yaml > k8s/deployment_rendered.yaml
+
+      - name: Configure kubectl
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ASSUME_ROLE_ARN_EKS }}
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: ${{ vars.AWS_REGION }}
+
+#      - name: Get SSM parameters
+#        id: ssm
+#        run: |
+#          SPRING_ACTIVE_PROFILE=$(aws ssm get-parameter --name "SPRING_ACTIVE_PROFILE" --with-decryption --query "Parameter.Value" --output text)
+#          echo "SPRING_ACTIVE_PROFILE=$SPRING_ACTIVE_PROFILE" >> $GITHUB_OUTPUT
+
+#      - name: Render ConfigMap
+#        run: |
+#          export SPRING_ACTIVE_PROFILE="${{ steps.ssm.outputs.SPRING_ACTIVE_PROFILE }}"
+#          envsubst < k8s/configmap.yaml > k8s/configmap_rendered.yaml
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name hakaton-app-dev --region ${{ vars.AWS_REGION }}
+
+      - name: Apply Kubernetes manifests
+        run: |
+          kubectl apply -f k8s/
+          kubectl rollout status deployment/notificacao-app
