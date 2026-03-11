@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: video-processor-api-config
+data:
+  aws.bucket.name: ""
+  aws.queue.name.videoprocessing: ""
+  aws.queue.name.notification: ""
