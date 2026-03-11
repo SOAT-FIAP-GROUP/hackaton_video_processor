@@ -21,7 +21,7 @@ jobs:
         run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and Push Docker image API
-        id: build
+        id: build1
         run: |
           IMAGE=${{ secrets.DOCKER_USERNAME }}/video_processor_api:latest
           docker build -t $IMAGE ./.docker/api.Dockerfile
@@ -29,7 +29,7 @@ jobs:
           echo "image=$IMAGE" >> $GITHUB_OUTPUT
 
       - name: Build and Push Docker image WORKER
-        id: build
+        id: build2
         run: |
           IMAGE=${{ secrets.DOCKER_USERNAME }}/video_processor_worker:latest
           docker build -t $IMAGE ./.docker/api.Dockerfile
