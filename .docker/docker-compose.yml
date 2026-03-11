@@ -1,24 +1,24 @@
 name: "Video Processor"
 services:
   db:
-    container_name: database
-    image: postgres:latest
+    build:
+        context: ../.
+        dockerfile: .docker/db.Dockerfile
+    container_name: videos-db
     environment:
+      #POSTGRES_DB: video_processor
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: video_processor
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    volumes:
+      - db-data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
-    networks:
-      - video_processor_network
-  cache:
-    image: redis:latest
-    container_name: cache
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    networks:
-      - video_processor_network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
   api:
     build:
         context: ../.
@@ -78,4 +78,6 @@ networks:
         driver: bridge
 volumes:
   media_data:
+    driver: local
+  db-data:
     driver: local
