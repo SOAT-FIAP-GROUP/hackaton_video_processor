@@ -10,6 +10,7 @@ import (
 	"shared/SQS"
 	"shared/config"
 	"shared/database/connection"
+	migrations2 "shared/database/connection/migrations"
 	"shared/database/repository"
 	"shared/storage/S3"
 	"sync"
@@ -20,6 +21,7 @@ type Setup struct {
 	c       *SQS.SQSClient
 	r       *SQS.SQSReceiver
 	h       *handlers.MessageHandler
+	db      connection.DatabaseConnection
 	workers int
 }
 
@@ -49,6 +51,12 @@ func NewSetup() (*Setup, error) {
 	dbConn, err := connection.CreatePostgresConnection(c.DBHost, c.DBUser, c.DBPassword, c.DBName, c.DBSSLMode, c.DBPort)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to connect to database: %v", err)
+	}
+
+	migrations := migrations2.GetMigrationsForWriteInstance()
+	err = dbConn.RunMigrations(migrations)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to run database migrations: %v", err)
 	}
 
 	videoRepository := repository.NewVideoRepository(dbConn)
@@ -82,6 +90,7 @@ func NewSetup() (*Setup, error) {
 		r:       receiver,
 		h:       handler,
 		workers: c.NumberWorkers,
+		db:      dbConn,
 	}, nil
 }
 
@@ -102,6 +111,7 @@ func createTempDirs(tempPath string) error {
 }
 
 func (s *Setup) RunWorker(ctx context.Context) error {
+	defer s.db.Close()
 	msgCh := make(chan SQS.SQSMessage, s.workers)
 
 	procCtx, procCancel := context.WithCancel(context.Background())
