@@ -14,23 +14,6 @@ type PostgresConnection struct {
 	client *sql.DB
 }
 
-var m = []migrations.Migration{
-	{
-		Version: 1,
-		Name:    "create_videos_table",
-		Up: `
-			CREATE TABLE IF NOT EXISTS videos (
-			    id SERIAL PRIMARY KEY,
-			    user_id TEXT NOT NULL,
-			    name TEXT NOT NULL,
-			    processed_at TIMESTAMP NOT NULL DEFAULT NOW(),
-			    uploaded_at TIMESTAMP NOT NULL DEFAULT NOW(),
-			    path TEXT NOT NULL
-			    );`,
-		Down: `DROP TABLE IF EXISTS videos;`,
-	},
-}
-
 func CreatePostgresConnection(host, user, password, database, sslmode string, port int) (DatabaseConnection, error) {
 	dsn := fmt.Sprintf(
 		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
@@ -45,11 +28,6 @@ func CreatePostgresConnection(host, user, password, database, sslmode string, po
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database connection: %w", err)
-	}
-
-	err = runMigrations(db, m)
-	if err != nil {
-		return nil, fmt.Errorf("failed to run migrations: %w", err)
 	}
 
 	return &PostgresConnection{
@@ -100,8 +78,8 @@ func (p PostgresConnection) QueryRow(ctx context.Context, query string, scan fun
 	return nil
 }
 
-func runMigrations(db *sql.DB, migrations []migrations.Migration) error {
-	_, err := db.Exec(`
+func (p PostgresConnection) RunMigrations(migrations []migrations.Migration) error {
+	_, err := p.client.Exec(`
 		CREATE TABLE IF NOT EXISTS schema_migrations (
 			version INT PRIMARY KEY,
 			name TEXT NOT NULL,
@@ -114,7 +92,7 @@ func runMigrations(db *sql.DB, migrations []migrations.Migration) error {
 
 	for _, m := range migrations {
 		var exists bool
-		err := db.QueryRow(
+		err := p.client.QueryRow(
 			"SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE version = $1)", m.Version,
 		).Scan(&exists)
 		if err != nil {
@@ -126,7 +104,7 @@ func runMigrations(db *sql.DB, migrations []migrations.Migration) error {
 			continue
 		}
 
-		tx, err := db.Begin()
+		tx, err := p.client.Begin()
 		if err != nil {
 			return fmt.Errorf("failed to begin transaction: %w", err)
 		}
