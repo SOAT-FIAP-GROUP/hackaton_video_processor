@@ -24,6 +24,9 @@ jobs:
         run: |
           go test ./apps/worker/internal/usecase -v -coverprofile=coverage.out
           go tool cover -func=coverage.out
+          sed -i 's|processor/|apps/worker/|g' coverage.out
+          
+          
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v6
