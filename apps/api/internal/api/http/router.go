@@ -26,12 +26,9 @@ func SetupRouter(vh *VideoHandler, uh *UserHandler, cognito *usecase.CognitoAuth
 		c.Next()
 	})
 
-	r.Static("/uploads", "./uploads")
-	r.Static("/outputs", "./outputs")
-
 	r.GET("/", AuthMiddleware(cognito), vh.HandleHome)
 	r.POST("/upload", AuthMiddleware(cognito), vh.HandleUpload)
-	r.GET("/download/:filename", AuthMiddleware(cognito), vh.HandleDownload)
+	r.GET("/download/*filename", AuthMiddleware(cognito), vh.HandleDownload)
 	r.GET("/api/status", AuthMiddleware(cognito), vh.HandleStatus)
 
 	r.GET("/login", uh.HandleLoginPage)

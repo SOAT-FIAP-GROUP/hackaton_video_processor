@@ -43,7 +43,7 @@ func NewSetup() (*Setup, error) {
 		return nil, fmt.Errorf("SQS Config error: %v", err)
 	}
 
-	err = c.ValidateDBConfig()
+	err = c.ValidateDBConfig(false)
 	if err != nil {
 		return nil, fmt.Errorf("DB Config error: %v", err)
 	}

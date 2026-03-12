@@ -14,6 +14,7 @@ type BrokerMessage struct {
 	UserName  string    `json:"user_name"`
 	UserEmail string    `json:"user_email"`
 	UploadAt  time.Time `json:"upload_at"`
+	FileName  string    `json:"file_name"`
 }
 
 type NotificationMessage struct {

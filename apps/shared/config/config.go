@@ -23,6 +23,7 @@ type Config struct {
 	DBUser                         string `env:"DB_USER,required"`
 	DBPassword                     string `env:"DB_PASSWORD,required"`
 	DBName                         string `env:"DB_NAME,required"`
+	DBReplicaName                  string `env:"DB_REPLICA_NAME,required"`
 	DBSSLMode                      string `env:"DB_SSL_MODE,required"`
 	NumberWorkers                  int    `env:"NUMBER_WORKERS,required"`
 }
@@ -59,6 +60,7 @@ func NewConfig() *Config {
 		DBUser:                         os.Getenv("DB_USER"),
 		DBPassword:                     os.Getenv("DB_PASSWORD"),
 		DBName:                         os.Getenv("DB_NAME"),
+		DBReplicaName:                  os.Getenv("DB_REPLICA_NAME"),
 		DBSSLMode:                      os.Getenv("DB_SSL_MODE"),
 		NumberWorkers:                  workers,
 		APIPort:                        apiPort,
@@ -137,7 +139,7 @@ func (c *Config) ValidateSQSConfig() error {
 	return nil
 }
 
-func (c *Config) ValidateDBConfig() error {
+func (c *Config) ValidateDBConfig(isApiService bool) error {
 	if c.DBHost == "" {
 		return fmt.Errorf("DB host is required")
 	}
@@ -156,6 +158,10 @@ func (c *Config) ValidateDBConfig() error {
 
 	if c.DBSSLMode == "" {
 		return fmt.Errorf("DB SSL mode is required")
+	}
+
+	if isApiService && c.DBReplicaName == "" {
+		return fmt.Errorf("DB replica name is required for API service")
 	}
 
 	return nil

@@ -78,6 +78,38 @@ func (p PostgresConnection) QueryRow(ctx context.Context, query string, scan fun
 	return nil
 }
 
+func (p PostgresConnection) QueryRows(ctx context.Context, query string, scan func(*sql.Rows) error, args ...interface{}) error {
+	transaction, err := p.client.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+
+	rows, err := transaction.QueryContext(ctx, query, args...)
+	if err != nil {
+		transaction.Rollback()
+		return fmt.Errorf("failed to execute query: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		if err := scan(rows); err != nil {
+			transaction.Rollback()
+			return fmt.Errorf("failed to scan row: %w", err)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		transaction.Rollback()
+		return fmt.Errorf("row iteration error: %w", err)
+	}
+
+	if err := transaction.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}
+
 func (p PostgresConnection) RunMigrations(migrations []migrations.Migration) error {
 	_, err := p.client.Exec(`
 		CREATE TABLE IF NOT EXISTS schema_migrations (

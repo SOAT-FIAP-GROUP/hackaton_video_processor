@@ -8,7 +8,9 @@ import (
 	"log"
 	"net/http"
 	"shared/SQS"
+	"shared/database/repository"
 	"shared/storage/S3"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -17,12 +19,14 @@ import (
 type VideoHandler struct {
 	fileStore *S3.S3Client
 	emitter   *SQS.SQSEmitter
+	videoRepo *repository.VideoRepository
 }
 
-func NewVideoHandler(s3client *S3.S3Client, emitter *SQS.SQSEmitter) *VideoHandler {
+func NewVideoHandler(s3client *S3.S3Client, emitter *SQS.SQSEmitter, repo *repository.VideoRepository) *VideoHandler {
 	return &VideoHandler{
 		fileStore: s3client,
 		emitter:   emitter,
+		videoRepo: repo,
 	}
 }
 
@@ -92,6 +96,7 @@ func (h *VideoHandler) HandleUpload(c *gin.Context) {
 		UserName:  username,
 		UserEmail: userEmail,
 		UploadAt:  time.Now(),
+		FileName:  header.Filename,
 	}
 
 	jsonMessage, err := json.Marshal(brokerMessage)
@@ -145,46 +150,46 @@ func uploadViaSignedURL(signedURL string, file []byte, fileSize int64) error {
 
 func (h *VideoHandler) HandleDownload(c *gin.Context) {
 	filename := c.Param("filename")
+	cleanFileName := strings.TrimPrefix(filename, "/")
+	userName := c.GetString("userID")
+	filepath := fmt.Sprintf("downloads/%s/%s", userName, cleanFileName)
 
-	err := fmt.Errorf("file not found: %s", filename)
+	url, err := h.fileStore.GenerateDownloadURL(c.Request.Context(), filepath, 5*time.Minute)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Arquivo não encontrado"})
-		return
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao ler arquivo: " + err.Error()})
 	}
 
-	c.Header("Content-Description", "File Transfer")
-	c.Header("Content-Transfer-Encoding", "binary")
-	c.Header("Content-Disposition", "attachment; filename="+filename)
-	c.Header("Content-Type", "application/zip")
+	c.Header("Content-Type", "application/json")
 
-	c.File("filePath")
+	c.JSON(http.StatusOK, gin.H{"download_url": url})
 }
 
 func (h *VideoHandler) HandleStatus(c *gin.Context) {
-	//userId := c.GetString("userID")
+	userId := c.GetString("userID")
 
-	//files, err := h.videoUseCase.GetProcessedFiles(userId)
-	err := fmt.Errorf("Simulated error for testing")
+	files, err := h.videoRepo.ListVideosByUserID(c.Request.Context(), userId)
 	if err != nil {
 		log.Println("Erro ao listar arquivos processados:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao listar arquivos"})
 		return
 	}
 
-	/*var results []map[string]interface{}
+	var results []map[string]interface{}
 	for _, file := range files {
+		pathSplit := strings.Split(file.Path, "/")
+		downloadPath := pathSplit[len(pathSplit)-1]
 		results = append(results, map[string]interface{}{
-			"filename":     file.Filename,
-			"size":         file.Size,
-			"created_at":   file.CreatedAt.Format("2006-01-02 15:04:05"),
-			"download_url": file.DownloadURL,
+			"filename":     file.Name,
+			"size":         0,
+			"created_at":   file.ProcessedAt.Format("2006-01-02 15:04:05"),
+			"download_url": downloadPath,
 		})
-	}*/
+	}
 
-	/*c.JSON(http.StatusOK, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"files": results,
 		"total": len(results),
-	})*/
+	})
 }
 
 func (h *VideoHandler) HandleHome(c *gin.Context) {

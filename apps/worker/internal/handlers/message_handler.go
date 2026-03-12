@@ -35,6 +35,15 @@ func (h *MessageHandler) HandleMessage(ctx context.Context, message []byte) erro
 
 	err := json.Unmarshal(message, &m)
 	if err != nil {
+		notification := SQS.NotificationMessage{
+			ProcessingID:     m.UserID,
+			UserName:         m.UserName,
+			UserEmail:        m.UserEmail,
+			UserID:           m.UserID,
+			NotificationDate: time.Now(),
+		}
+
+		h.sendNotification(ctx, notification)
 		return fmt.Errorf("error unmarshalling message: %s", err)
 	}
 
@@ -44,6 +53,15 @@ func (h *MessageHandler) HandleMessage(ctx context.Context, message []byte) erro
 
 	key, err := h.s3.DownloadToTempDir(ctx, m.VideoPath)
 	if err != nil {
+		notification := SQS.NotificationMessage{
+			ProcessingID:     m.UserID,
+			UserName:         m.UserName,
+			UserEmail:        m.UserEmail,
+			UserID:           m.UserID,
+			NotificationDate: time.Now(),
+		}
+
+		h.sendNotification(ctx, notification)
 		return fmt.Errorf("error downloading video: %s", err)
 	}
 
@@ -51,6 +69,15 @@ func (h *MessageHandler) HandleMessage(ctx context.Context, message []byte) erro
 
 	framesPath, zipPath, err := h.p.Process(ctx, key)
 	if err != nil {
+		notification := SQS.NotificationMessage{
+			ProcessingID:     m.UserID,
+			UserName:         m.UserName,
+			UserEmail:        m.UserEmail,
+			UserID:           m.UserID,
+			NotificationDate: time.Now(),
+		}
+
+		h.sendNotification(ctx, notification)
 		return fmt.Errorf("error processing video: %s", err)
 	}
 
@@ -63,6 +90,15 @@ func (h *MessageHandler) HandleMessage(ctx context.Context, message []byte) erro
 
 	err = h.s3.UploadFile(ctx, zipPath, s3FileName)
 	if err != nil {
+		notification := SQS.NotificationMessage{
+			ProcessingID:     m.UserID,
+			UserName:         m.UserName,
+			UserEmail:        m.UserEmail,
+			UserID:           m.UserID,
+			NotificationDate: time.Now(),
+		}
+
+		h.sendNotification(ctx, notification)
 		return fmt.Errorf("error uploading file: %s", err)
 	}
 
@@ -77,19 +113,29 @@ func (h *MessageHandler) HandleMessage(ctx context.Context, message []byte) erro
 
 	entity := &repository.VideoEntity{
 		UserID:     m.UserID,
-		Name:       m.UserName,
+		Name:       m.FileName,
 		Path:       s3FileName,
 		UploadedAt: m.UploadAt,
 	}
 
 	err = h.repo.CreateVideo(ctx, entity)
 	if err != nil {
+		notification := SQS.NotificationMessage{
+			ProcessingID:     m.UserID,
+			UserName:         m.UserName,
+			UserEmail:        m.UserEmail,
+			UserID:           m.UserID,
+			NotificationDate: time.Now(),
+		}
+
+		h.sendNotification(ctx, notification)
+
 		log.Printf("error saving video to database: %s", err)
 	}
 
 	log.Printf("Downloaded video: %s", key)
 
-	notification := SQS.NotificationMessage{
+	/*notification := SQS.NotificationMessage{
 		ProcessingID:     entity.UserID,
 		UserName:         m.UserName,
 		UserEmail:        m.UserEmail,
@@ -107,7 +153,21 @@ func (h *MessageHandler) HandleMessage(ctx context.Context, message []byte) erro
 		log.Printf("error sending notification message: %s", err)
 	}
 
-	log.Printf("Notification sent! Message ID: %s", r)
+	log.Printf("Notification sent! Message ID: %s", r)*/
 
 	return nil
+}
+
+func (h *MessageHandler) sendNotification(ctx context.Context, notification SQS.NotificationMessage) {
+	jsonNotification, err := json.Marshal(notification)
+	if err != nil {
+		log.Printf("error marshalling notification message: %s", err)
+	}
+
+	r, err := h.emitter.SendMessage(ctx, jsonNotification)
+	if err != nil {
+		log.Printf("error sending notification message: %s", err)
+	}
+
+	log.Printf("Notification sent! Message ID: %s", r)
 }

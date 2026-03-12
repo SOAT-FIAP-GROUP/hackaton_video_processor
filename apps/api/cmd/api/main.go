@@ -2,12 +2,16 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	delivery "frontend/internal/api/http"
 	"frontend/internal/usecase"
 	"log"
 	"shared/SQS"
 	"shared/config"
+	"shared/database/connection"
+	"shared/database/connection/migrations"
+	"shared/database/repository"
 	"shared/storage/S3"
 )
 
@@ -28,6 +32,41 @@ func main() {
 		log.Fatalf("Invalid configuration for SQS: %v", err)
 	}
 
+	err = c.ValidateDBConfig(true)
+	if err != nil {
+		log.Fatalf("Invalid configuration for Database: %v", err)
+	}
+
+	conn, err := connection.CreatePostgresConnection("localhost", "postgres", "password", "video_processor_replica", "disable", 5432)
+	if err != nil {
+		panic("Failed to create database connection: " + err.Error())
+	}
+	defer conn.Close()
+
+	connVar := migrations.CreateConnectionVar(c.DBHost, c.DBName, c.DBReplicaName, c.DBUser, c.DBPassword, c.DBPort)
+	err = conn.QueryRow(context.Background(), connVar, func(rows *sql.Rows) error {
+		var result int
+		if rows.Next() {
+			err := rows.Scan(&result)
+			if err != nil {
+				return err
+			}
+			log.Printf("Read instance test query result: %d", result)
+		}
+		return nil
+	})
+	if err != nil {
+		log.Fatalf("Failed to generate db var: %s", err.Error())
+	}
+
+	m := migrations.GetMigrationsForReadInstance()
+	err = conn.RunMigrations(m)
+	if err != nil {
+		log.Fatalf("Failed to run migrations: %s", err.Error())
+	}
+
+	r := repository.NewVideoRepository(conn)
+
 	cognitoUseCase, err := usecase.NewCognitoClient(c.AWSRegion, c.CognitoClientID, c.CognitoClientSecret, c.CognitoUserPoolID)
 	if err != nil {
 		log.Fatalf("Failed to initialize Cognito client: %v", err)
@@ -45,7 +84,7 @@ func main() {
 
 	emitter := SQS.NewSQSEmitter(c.AWSSQSQueueNameVideoProcessing, sqs)
 
-	videoHandler := delivery.NewVideoHandler(s3, emitter)
+	videoHandler := delivery.NewVideoHandler(s3, emitter, r)
 	userHandler := delivery.NewUserHandler(cognitoUseCase)
 
 	router := delivery.SetupRouter(videoHandler, userHandler, cognitoUseCase)
