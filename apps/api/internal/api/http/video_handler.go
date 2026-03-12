@@ -96,6 +96,7 @@ func (h *VideoHandler) HandleUpload(c *gin.Context) {
 		UserName:  username,
 		UserEmail: userEmail,
 		UploadAt:  time.Now(),
+		FileName:  header.Filename,
 	}
 
 	jsonMessage, err := json.Marshal(brokerMessage)
