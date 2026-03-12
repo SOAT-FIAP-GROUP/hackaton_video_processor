@@ -10,6 +10,7 @@ import (
 	"shared/SQS"
 	"shared/database/repository"
 	"shared/storage/S3"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -148,26 +149,24 @@ func uploadViaSignedURL(signedURL string, file []byte, fileSize int64) error {
 
 func (h *VideoHandler) HandleDownload(c *gin.Context) {
 	filename := c.Param("filename")
+	cleanFileName := strings.TrimPrefix(filename, "/")
+	userName := c.GetString("userID")
+	filepath := fmt.Sprintf("downloads/%s/%s", userName, cleanFileName)
 
-	err := fmt.Errorf("file not found: %s", filename)
+	url, err := h.fileStore.GenerateDownloadURL(c.Request.Context(), filepath, 5*time.Minute)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Arquivo não encontrado"})
-		return
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao ler arquivo: " + err.Error()})
 	}
 
-	c.Header("Content-Description", "File Transfer")
-	c.Header("Content-Transfer-Encoding", "binary")
-	c.Header("Content-Disposition", "attachment; filename="+filename)
-	c.Header("Content-Type", "application/zip")
+	c.Header("Content-Type", "application/json")
 
-	c.File("filePath")
+	c.JSON(http.StatusOK, gin.H{"download_url": url})
 }
 
 func (h *VideoHandler) HandleStatus(c *gin.Context) {
 	userId := c.GetString("userID")
 
 	files, err := h.videoRepo.ListVideosByUserID(c.Request.Context(), userId)
-	//err := fmt.Errorf("Simulated error for testing")
 	if err != nil {
 		log.Println("Erro ao listar arquivos processados:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao listar arquivos"})
@@ -176,11 +175,14 @@ func (h *VideoHandler) HandleStatus(c *gin.Context) {
 
 	var results []map[string]interface{}
 	for _, file := range files {
+		pathSplit := strings.Split(file.Path, "/")
+		downloadPath := pathSplit[len(pathSplit)-1]
 		results = append(results, map[string]interface{}{
+
 			"filename":     file.Name,
 			"size":         0,
 			"created_at":   file.ProcessedAt.Format("2006-01-02 15:04:05"),
-			"download_url": file.Path,
+			"download_url": downloadPath,
 		})
 	}
 
