@@ -37,7 +37,7 @@ func main() {
 		log.Fatalf("Invalid configuration for Database: %v", err)
 	}
 
-	conn, err := connection.CreatePostgresConnection("localhost", "postgres", "password", "video_processor_replica", "disable", 5432)
+	conn, err := connection.CreatePostgresConnection(c.DBHost, c.DBUser, c.DBPassword, c.DBReplicaName, c.DBSSLMode, c.DBPort)
 	if err != nil {
 		panic("Failed to create database connection: " + err.Error())
 	}
