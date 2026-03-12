@@ -178,7 +178,6 @@ func (h *VideoHandler) HandleStatus(c *gin.Context) {
 		pathSplit := strings.Split(file.Path, "/")
 		downloadPath := pathSplit[len(pathSplit)-1]
 		results = append(results, map[string]interface{}{
-
 			"filename":     file.Name,
 			"size":         0,
 			"created_at":   file.ProcessedAt.Format("2006-01-02 15:04:05"),
