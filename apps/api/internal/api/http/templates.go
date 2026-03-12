@@ -164,8 +164,7 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
         if (result.success) {
 
             showResult(
-                result.message +
-                '<br><br><a href="#" onclick="downloadFile(\'' + result.zip_path + '\')" class="download-btn">⬇️ Download ZIP</a>',
+                result.message,
                 'success'
             );
 
@@ -234,7 +233,7 @@ async function loadFilesList() {
 
             filesList.innerHTML = data.files.map(file => 
                 '<div class="file-item">' +
-                '<span>' + file.filename + ' (' + formatFileSize(file.size) + ') - ' + file.created_at + '</span>' +
+                '<span>' + file.filename + ' - ' + file.created_at + '</span>' +
                 '<a href="#" onclick="downloadFile(\'' + file.download_url + '\')" class="download-btn">⬇️ Download</a>' +
                 '</div>'
             ).join('');
