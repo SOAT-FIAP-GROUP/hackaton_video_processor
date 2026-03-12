@@ -19,6 +19,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - video_processor_network
   api:
     build:
         context: ../.
@@ -39,6 +41,13 @@ services:
       - GIN_MODE=release
       - API_PORT=8080
       - TEMP_PATH=/unknown
+      - DB_HOST=db
+      - DB_NAME=video_processor
+      - DB_REPLICA_NAME=video_processor_replica
+      - DB_PASSWORD=password
+      - DB_PORT=5432
+      - DB_SSL_MODE=disable
+      - DB_USER=postgres
     ports:
       - "8080:8080"
     depends_on:
