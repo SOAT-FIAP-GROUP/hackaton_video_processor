@@ -49,7 +49,7 @@ func (vr *VideoRepository) ListVideosByUserID(ctx context.Context, userID string
 	query := `SELECT id, user_id, name, path, uploaded_at, processed_at FROM videos WHERE user_id = $1 ORDER BY uploaded_at DESC`
 
 	var videos []*VideoEntity
-	err := vr.dbConn.QueryRow(ctx, query, func(rows *sql.Rows) error {
+	err := vr.dbConn.QueryRows(ctx, query, func(rows *sql.Rows) error {
 		var video VideoEntity
 		if err := rows.Scan(&video.ID, &video.UserID, &video.Name, &video.Path, &video.UploadedAt, &video.ProcessedAt); err != nil {
 			return err
