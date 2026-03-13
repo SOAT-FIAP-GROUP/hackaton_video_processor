@@ -42,11 +42,15 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ASSUME_ROLE_ARN_EKS }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
           aws-region: ${{ vars.AWS_REGION }}
+          # AWS_S3_BUCKET=$(aws ssm get-parameter --name "S3_BUCKET" --region us-east-1)
+          #           echo "AWS_S3_BUCKET=$AWS_S3_BUCKET" >> $GITHUB_OUTPUT
+          #                     export AWS_S3_BUCKET="${{ steps.ssm.outputs.AWS_S3_BUCKET }}"
+
+
 
       - name: Get SSM parameters
         id: ssm
         run: |
-          AWS_S3_BUCKET=$(aws ssm get-parameter --name "S3_BUCKET" --region us-east-1)
           AWS_SQS_QUEUE_NAME_VIDEO_PROCESSING=$(aws ssm get-parameter --name "SQS_QUEUE_NAME_VIDEO_PROCESSING" --with-decryption --query "Parameter.Value" --output text)
           AWS_SQS_QUEUE_NAME_NOTIFICATION=$(aws ssm get-parameter --name "SQS_QUEUE_NAME_NOTIFICATION" --with-decryption --query "Parameter.Value" --output text)
           COGNITO_CLIENT_ID=$(aws ssm get-parameter --name "COGNITO_CLIENT_ID" --with-decryption --query "Parameter.Value" --output text)
@@ -56,7 +60,6 @@ jobs:
           DB_USER=$(aws ssm get-parameter --name "DB_USER" --with-decryption --query "Parameter.Value" --output text)
           DB_PASSWORD=$(aws ssm get-parameter --name "DB_PASSWORD" --with-decryption --query "Parameter.Value" --output text)
 
-          echo "AWS_S3_BUCKET=$AWS_S3_BUCKET" >> $GITHUB_OUTPUT
           echo "AWS_SQS_QUEUE_NAME_VIDEO_PROCESSING=$AWS_SQS_QUEUE_NAME_VIDEO_PROCESSING" >> $GITHUB_OUTPUT
           echo "AWS_SQS_QUEUE_NAME_NOTIFICATION=$AWS_SQS_QUEUE_NAME_NOTIFICATION" >> $GITHUB_OUTPUT
           echo "COGNITO_CLIENT_ID=$COGNITO_CLIENT_ID" >> $GITHUB_OUTPUT
@@ -68,7 +71,6 @@ jobs:
 
       - name: Render ConfigMaps
         run: |
-          export AWS_S3_BUCKET="${{ steps.ssm.outputs.AWS_S3_BUCKET }}"
           export AWS_SQS_QUEUE_NAME_VIDEO_PROCESSING="${{ steps.ssm.outputs.AWS_SQS_QUEUE_NAME_VIDEO_PROCESSING }}"
           export AWS_SQS_QUEUE_NAME_NOTIFICATION="${{ steps.ssm.outputs.AWS_SQS_QUEUE_NAME_NOTIFICATION }}"
           export COGNITO_CLIENT_ID="${{ steps.ssm.outputs.COGNITO_CLIENT_ID }}"
