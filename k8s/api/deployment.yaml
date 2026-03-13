@@ -71,6 +71,16 @@ spec:
               secretKeyRef:
                 name: video-processor-secret
                 key: db.password
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+              secretKeyRef:
+                name: video-processor-secret
+                key: aws.accesskey.id
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+              secretKeyRef:
+                name: video-processor-secret
+                key: aws.secret.accesskey
         - name: DB_PORT
           value: "5432"
         - name: DB_SSL_MODE
