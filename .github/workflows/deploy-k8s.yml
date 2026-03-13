@@ -20,10 +20,6 @@ jobs:
   deploy:
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event.inputs.force-deploy == 'true' }}
     runs-on: ubuntu-latest
-
-    env:
-      AWS_REGION: ${{ vars.AWS_REGION }}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -32,7 +28,6 @@ jobs:
         run: |
           DOCKER_IMAGE_API="${{ secrets.DOCKER_USERNAME }}/video_processor_api:latest"
           DOCKER_IMAGE_WORKER="${{ secrets.DOCKER_USERNAME }}/video_processor_worker:latest"
-
           echo "DOCKER_IMAGE_WORKER=$DOCKER_IMAGE_WORKER" >> $GITHUB_ENV
           echo "DOCKER_IMAGE_API=$DOCKER_IMAGE_API" >> $GITHUB_ENV
 
@@ -41,7 +36,7 @@ jobs:
           envsubst < k8s/api/deployment.yaml > k8s/api/deployment_rendered.yaml
           envsubst < k8s/worker/deployment.yaml > k8s/worker/deployment_rendered.yaml
 
-      - name: Configure AWS credentials
+      - name: Configure kubectl
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ASSUME_ROLE_ARN_EKS }}
@@ -52,7 +47,7 @@ jobs:
         id: ssm
         run: |
           PARAMS=$(aws ssm get-parameters \
-            --region "$AWS_REGION" \
+            --region $AWS_REGION \
             --names \
             S3_BUCKET \
             SQS_QUEUE_NAME_VIDEO_PROCESSING \
@@ -67,8 +62,8 @@ jobs:
             --query "Parameters[*].[Name,Value]" \
             --output text)
 
-          while IFS=$'\t' read -r name value; do
-            echo "$name=$value" >> "$GITHUB_OUTPUT"
+          while read name value; do
+            echo "$name=$value" >> $GITHUB_OUTPUT
           done <<< "$PARAMS"
 
       - name: Render ConfigMaps
@@ -85,31 +80,16 @@ jobs:
           envsubst < k8s/worker/configmap.yaml > k8s/worker/configmap_rendered.yaml
 
       - name: Update kubeconfig
-        run: aws eks update-kubeconfig --name hakaton-app-dev --region "$AWS_REGION"
-
-      - name: Get SSM parameters secret
-        id: ssm2
-        run: |
-          PARAMS2=$(aws ssm get-parameters \
-            --region "$AWS_REGION" \
-            --names \
-            ACCESS_KEY_ID \
-            SECRET_ACCESS_KEY \
-            --with-decryption \
-            --query "Parameters[*].[Name,Value]" \
-            --output text)
-
-          while IFS=$'\t' read -r name value; do
-            echo "$name=$value" >> "$GITHUB_OUTPUT"
-          done <<< "$PARAMS2"
+        run: aws eks update-kubeconfig --name hakaton-app-dev --region ${{ vars.AWS_REGION }}
 
       - name: Apply Kubernetes Secrets
+        if: ${{ inputs.destroy != 'true' }}
         run: |
           kubectl create secret generic video-processor-secret \
             --from-literal=aws.cognito.client.secret="${{ steps.ssm.outputs.COGNITO_CLIENT_SECRET }}" \
             --from-literal=db.password="${{ steps.ssm.outputs.DB_PASSWORD }}" \
-            --from-literal=aws.accesskey.id="${{ steps.ssm2.outputs.ACCESS_KEY_ID }}" \
-            --from-literal=aws.secret.accesskey="${{ steps.ssm2.outputs.SECRET_ACCESS_KEY }}" \
+            --from-literal=aws.accesskey.id="${{ secrets.AWS_ACCESS_KEY }}" \
+            --from-literal=aws.secret.accesskey="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Apply Kubernetes manifests
