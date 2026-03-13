@@ -43,14 +43,7 @@ jobs:
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
           aws-region: ${{ vars.AWS_REGION }}
 
-          #           AWS_SQS_QUEUE_NAME_VIDEO_PROCESSING=$(aws ssm get-parameter --name "SQS_QUEUE_NAME_VIDEO_PROCESSING" --with-decryption --query "Parameter.Value" --output text)
-          # AWS_SQS_QUEUE_NAME_NOTIFICATION=$(aws ssm get-parameter --name "SQS_QUEUE_NAME_NOTIFICATION" --with-decryption --query "Parameter.Value" --output text)
-          # COGNITO_CLIENT_ID=$(aws ssm get-parameter --name "COGNITO_CLIENT_ID" --with-decryption --query "Parameter.Value" --output text)
-          # COGNITO_CLIENT_SECRET=$(aws ssm get-parameter --name "COGNITO_CLIENT_SECRET" --with-decryption --query "Parameter.Value" --output text)
-          # COGNITO_USER_POOL_ID=$(aws ssm get-parameter --name "COGNITO_USER_POOL_ID" --with-decryption --query "Parameter.Value" --output text)
-          # DB_HOST=$(aws ssm get-parameter --name "DB_HOST" --with-decryption --query "Parameter.Value" --output text)
-          # DB_USER=$(aws ssm get-parameter --name "DB_USER" --with-decryption --query "Parameter.Value" --output text)
-          # DB_PASSWORD=$(aws ssm get-parameter --name "DB_PASSWORD" --with-decryption --query "Parameter.Value" --output text)
+
 
           # echo "AWS_SQS_QUEUE_NAME_VIDEO_PROCESSING=$AWS_SQS_QUEUE_NAME_VIDEO_PROCESSING" >> $GITHUB_OUTPUT
           # echo "AWS_SQS_QUEUE_NAME_NOTIFICATION=$AWS_SQS_QUEUE_NAME_NOTIFICATION" >> $GITHUB_OUTPUT
@@ -64,6 +57,14 @@ jobs:
         id: ssm
         run: |
           S3_BUCKET=$(aws ssm get-parameter --name "S3_BUCKET" --with-decryption --query "Parameter.Value" --output text)
+          AWS_SQS_QUEUE_NAME_VIDEO_PROCESSING=$(aws ssm get-parameter --name "SQS_QUEUE_NAME_VIDEO_PROCESSING" --with-decryption --query "Parameter.Value" --output text)
+          AWS_SQS_QUEUE_NAME_NOTIFICATION=$(aws ssm get-parameter --name "SQS_QUEUE_NAME_NOTIFICATION" --with-decryption --query "Parameter.Value" --output text)
+          COGNITO_CLIENT_ID=$(aws ssm get-parameter --name "COGNITO_CLIENT_ID" --with-decryption --query "Parameter.Value" --output text)
+          COGNITO_CLIENT_SECRET=$(aws ssm get-parameter --name "COGNITO_CLIENT_SECRET" --with-decryption --query "Parameter.Value" --output text)
+          COGNITO_USER_POOL_ID=$(aws ssm get-parameter --name "COGNITO_USER_POOL_ID" --with-decryption --query "Parameter.Value" --output text)
+          DB_HOST=$(aws ssm get-parameter --name "DB_HOST" --with-decryption --query "Parameter.Value" --output text)
+          DB_USER=$(aws ssm get-parameter --name "DB_USER" --with-decryption --query "Parameter.Value" --output text)
+          DB_PASSWORD=$(aws ssm get-parameter --name "DB_PASSWORD" --with-decryption --query "Parameter.Value" --output text)
           echo "S3_BUCKET=$S3_BUCKET" >> $GITHUB_OUTPUT
 
 
