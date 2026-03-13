@@ -84,6 +84,22 @@ jobs:
       - name: Update kubeconfig
         run: aws eks update-kubeconfig --name hakaton-app-dev --region ${{ vars.AWS_REGION }}
 
+      - name: Get SSM parameters secret
+        id: ssm2
+        run: |
+          PARAMS2=$(aws ssm get-parameters \
+            --region $AWS_REGION \
+            --names \
+            ACCESS_KEY_ID \
+            SECRET_ACCESS_KEY \
+            --with-decryption \
+            --query "Parameters[*].[Name,Value]" \
+            --output text)
+
+          while read name value; do
+            echo "$name=$value" >> $GITHUB_OUTPUT
+          done <<< "$PARAMS2"
+
       - name: Apply Kubernetes Secrets 
         if: ${{ inputs.destroy != 'true' }}
         run: |
