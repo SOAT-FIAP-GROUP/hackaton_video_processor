@@ -42,6 +42,12 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ASSUME_ROLE_ARN_EKS }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
           aws-region: ${{ vars.AWS_REGION }}
+      
+      - name: Debug AWS
+        run: |
+          aws sts get-caller-identity
+          aws configure list
+          aws ssm get-parameter --name "S3_BUCKET" --region us-east-1
 
       - name: Get SSM parameters
         id: ssm
