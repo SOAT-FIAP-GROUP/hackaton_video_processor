@@ -42,15 +42,11 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ASSUME_ROLE_ARN_EKS }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
           aws-region: ${{ vars.AWS_REGION }}
-      
-      - name: Debug AWS
-        run: |
-          aws sts get-caller-identity
-          aws configure list
-          aws ssm get-parameter --name "S3_BUCKET" --region us-east-1
 
       - name: Get SSM parameters
         id: ssm
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION }}
         run: |
           AWS_S3_BUCKET=$(aws ssm get-parameter --name "S3_BUCKET" --with-decryption --query "Parameter.Value" --output text)
           AWS_SQS_QUEUE_NAME_VIDEO_PROCESSING=$(aws ssm get-parameter --name "SQS_QUEUE_NAME_VIDEO_PROCESSING" --with-decryption --query "Parameter.Value" --output text)
