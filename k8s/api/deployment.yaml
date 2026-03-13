@@ -19,21 +19,64 @@ spec:
         ports:
         - containerPort: 8080
         env:
+        - name: AWS_REGION
+          value: us-east-1      
         - name: AWS_S3_BUCKET
           valueFrom:
-            configMapKeyRef:
-              name: video-processor-api-config
-              key: aws.bucket.name
+              configMapKeyRef:
+                name: video-processor-api-config
+                key: aws.bucket.name
         - name: AWS_SQS_QUEUE_NAME_VIDEO_PROCESSING
           valueFrom:
-            configMapKeyRef:
-              name: video-processor-api-config
-              key: aws.queue.name.videoprocessing
+              configMapKeyRef:
+                name: video-processor-api-config
+                key: aws.queue.name.videoprocessing
         - name: AWS_SQS_QUEUE_NAME_NOTIFICATION
           valueFrom:
-            configMapKeyRef:
-              name: video-processor-api-config
-              key: aws.queue.name.notification
+              configMapKeyRef:
+                name: video-processor-api-config
+                key: aws.queue.name.notification
+        - name: COGNITO_CLIENT_ID
+          valueFrom:
+              configMapKeyRef:
+                name: video-processor-api-config
+                key: aws.cognito.client.id
+        - name: COGNITO_CLIENT_SECRET
+          valueFrom:
+              secretKeyRef:
+                name: video-processor-secret
+                key: aws.cognito.client.secret
+        - name: COGNITO_USER_POOL_ID
+          valueFrom:
+              configMapKeyRef:
+                name: video-processor-api-config
+                key: aws.cognito.user-pool.id
+        - name: GIN_MODE
+          value: release
+        - name: API_PORT
+          value: 8080
+        - name: TEMP_PATH
+          value: /mnt/media
+        - name: DB_HOST
+          valueFrom:
+              configMapKeyRef:
+                name: video-processor-api-config
+                key: db.host
+        - name: DB_NAME
+          value: video_processor
+        - name: DB_REPLICA_NAME
+          value: video_processor_replica
+        - name: DB_PASSWORD
+          valueFrom:
+              secretKeyRef:
+                name: video-processor-secret
+                key: db.password
+        - name: DB_PORT
+          value: 5432
+        - name: DB_SSL_MODE
+          value: require
+        - name: DB_USER
+          value: postgres 
         resources:
           requests:
             cpu: "100m"
