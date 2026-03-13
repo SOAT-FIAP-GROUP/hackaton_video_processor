@@ -104,8 +104,8 @@ jobs:
           kubectl create secret generic video-processor-secret \
             --from-literal=aws.cognito.client.secret=${{ steps.ssm.outputs.COGNITO_CLIENT_SECRET }} \
             --from-literal=db.password=${{ steps.ssm.outputs.DB_PASSWORD }} \
-            --from-literal=aws.accesskey.id=${{ steps.ssm.outputs.ACCESS_KEY_ID }} \
-            --from-literal=aws.secret.accesskey=${{ steps.ssm.outputs.SECRET_ACCESS_KEY }} \
+            --from-literal=aws.accesskey.id=${{ steps.ssm2.outputs.ACCESS_KEY_ID }} \
+            --from-literal=aws.secret.accesskey=${{ steps.ssm2.outputs.SECRET_ACCESS_KEY }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Apply Kubernetes manifests
