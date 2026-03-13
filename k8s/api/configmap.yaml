@@ -3,9 +3,9 @@ kind: ConfigMap
 metadata:
   name: video-processor-api-config
 data:
-  aws.bucket.name: ${AWS_S3_BUCKET}
-  aws.queue.name.videoprocessing: ${AWS_SQS_QUEUE_NAME_VIDEO_PROCESSING}
-  aws.queue.name.notification: ${AWS_SQS_QUEUE_NAME_NOTIFICATION}
-  aws.cognito.client.id: ${COGNITO_CLIENT_ID}
-  aws.cognito.user-pool.id: ${COGNITO_USER_POOL_ID}
-  db.host: ${DB_HOST}
+  aws.bucket.name: "${AWS_S3_BUCKET}"
+  aws.queue.name.videoprocessing: "${AWS_SQS_QUEUE_NAME_VIDEO_PROCESSING}"
+  aws.queue.name.notification: "${AWS_SQS_QUEUE_NAME_NOTIFICATION}"
+  aws.cognito.client.id: "${COGNITO_CLIENT_ID}"
+  aws.cognito.user-pool.id: "${COGNITO_USER_POOL_ID}"
+  db.host: "${DB_HOST}"
