@@ -58,8 +58,6 @@ jobs:
             DB_HOST \
             DB_USER \
             DB_PASSWORD \
-            ACCESS_KEY_ID \
-            SECRET_ACCESS_KEY \
             --with-decryption \
             --query "Parameters[*].[Name,Value]" \
             --output text)
