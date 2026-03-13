@@ -54,7 +54,7 @@ spec:
         - name: GIN_MODE
           value: release
         - name: API_PORT
-          value: 8080
+          value: "8080"
         - name: TEMP_PATH
           value: /unknown
         - name: DB_HOST
@@ -72,7 +72,7 @@ spec:
                 name: video-processor-secret
                 key: db.password
         - name: DB_PORT
-          value: 5432
+          value: "5432"
         - name: DB_SSL_MODE
           value: require
         - name: DB_USER
