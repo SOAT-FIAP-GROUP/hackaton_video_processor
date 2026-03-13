@@ -46,7 +46,7 @@ jobs:
       - name: Get SSM parameters
         id: ssm
         run: |
-          AWS_S3_BUCKET=$(aws ssm get-parameter --name "S3_BUCKET" --with-decryption --query "Parameter.Value" --output text --region us-east-1)
+          AWS_S3_BUCKET=$(aws ssm get-parameter --name "S3_BUCKET" --region us-east-1)
           AWS_SQS_QUEUE_NAME_VIDEO_PROCESSING=$(aws ssm get-parameter --name "SQS_QUEUE_NAME_VIDEO_PROCESSING" --with-decryption --query "Parameter.Value" --output text)
           AWS_SQS_QUEUE_NAME_NOTIFICATION=$(aws ssm get-parameter --name "SQS_QUEUE_NAME_NOTIFICATION" --with-decryption --query "Parameter.Value" --output text)
           COGNITO_CLIENT_ID=$(aws ssm get-parameter --name "COGNITO_CLIENT_ID" --with-decryption --query "Parameter.Value" --output text)
