@@ -1,169 +1,142 @@
-# Video Processor - Clean Architecture
+# Hackaton FIAP
 
-Este projeto implementa um processador de vídeos seguindo os princípios da Clean Architecture.
+---
 
-## 📁 Estrutura do Projeto
+## Integrantes do grupo:
 
-```
-video-processor/
-├── cmd/
-│   └── server/
-│       └── main.go                 # Entry point da aplicação
-├── internal/
-│   ├── domain/                     # Camada de Domínio (Entities)
-│   │   ├── entities.go            # Entidades de negócio
-│   │   └── repository.go          # Interfaces dos repositórios
-│   ├── usecase/                    # Camada de Casos de Uso (Use Cases)
-│   │   └── video_usecase.go       # Lógica de negócio
-│   ├── repository/                 # Camada de Interface (Adapters)
-│   │   ├── video_repository.go    # Implementação do repositório de vídeo
-│   │   └── frame_repository.go    # Implementação do repositório de frames
-│   ├── infrastructure/             # Camada de Infraestrutura
-│   │   └── ffmpeg_processor.go    # Implementação do processador FFmpeg
-│   └── delivery/                   # Camada de Entrega (Frameworks & Drivers)
-│       └── http/
-│           ├── video_handler.go   # Handlers HTTP
-│           ├── router.go          # Configuração de rotas
-│           └── templates.go       # Templates HTML
-├── pkg/
-│   └── utils/
-│       └── filesystem.go           # Utilitários
-├── go.mod
-└── README.md
-```
+- Jose Augusto dos Santos- RM 361650
+- Nathalia Matielo Rodrigues- RM 363100
+- Rogerio Inacio Silva Junior- RM 364104
+- Vanessa Moreira Wendling - RM 362741
 
-## 🏗️ Arquitetura
+---
 
-### Camadas da Clean Architecture
 
-#### 1. **Domain Layer (Entities)**
-- **Localização**: `internal/domain/`
-- **Responsabilidade**: Contém as entidades de negócio e interfaces dos repositórios
-- **Características**:
-  - Não depende de nenhuma outra camada
-  - Define as regras de negócio essenciais
-  - Interfaces dos repositórios (Dependency Inversion Principle)
+## 📦 Funcionalidades Entregues no Hackaton ##
 
-#### 2. **Use Case Layer**
-- **Localização**: `internal/usecase/`
-- **Responsabilidade**: Contém a lógica de negócio da aplicação
-- **Características**:
-  - Depende apenas da camada Domain
-  - Orquestra o fluxo de dados entre as camadas
-  - Implementa os casos de uso do sistema
+Sistema de processamento de vídeo  responsávavel por processar e armazenar imagem. O sistema atende os seguintes requisitos:
 
-#### 3. **Interface Adapters Layer**
-- **Localização**: `internal/repository/` e `internal/delivery/`
-- **Responsabilidade**: Converte dados entre as camadas externas e internas
-- **Componentes**:
-  - **Repositories**: Implementações concretas das interfaces de repositório
-  - **HTTP Handlers**: Adaptadores para requisições HTTP
 
-#### 4. **Infrastructure Layer**
-- **Localização**: `internal/infrastructure/`
-- **Responsabilidade**: Implementações de ferramentas e serviços externos
-- **Características**:
-  - FFmpeg processor
-  - Serviços de terceiros
-  - Frameworks externos
+- DDD Event Storm 
+- Desenho de Arquitetura Serviços AWS
+- Desenho de solução C4
+- Hackaton_video_processor: Responsável por fornecer endpoints para usuário interagir com o sistema via front, autenticação via cognito e upload de arquivo via presignerdUrl e worker do microserviço de processamento.
+- ms_envio-arquivos: Responsável por front do projeto
+- ms_notificacao: Microserviço responsável por notificar o cliente
+- AWS RDS banco responsável por armazenar as informações sobre a solicitação de upload de imagem
+- AWS DynamoDB responsável por armazenar as informações sobre as falhas de processamento 
+- AWS SQS Processar Imagem responsável por receber solicitações de processamento de vídeo
+- AWS SQS Objeto Criado responsável por atualizar status de processamento concluido 
+- AWS SQS Notificar Falha responsável por gerenciar solicitações com falha no processamento de vídeo
+- AWS S3 bucket responsável por o armazenamento de vídeo recebido e resultado do processamento 
+- Cobertura de testes superior a 80% 
+- Branches Main/Master protegidas
+- Deploy automatizado via CI/CD
+---
 
-#### 5. **Frameworks & Drivers Layer**
-- **Localização**: `cmd/` e `internal/delivery/`
-- **Responsabilidade**: Entry points e configuração de frameworks
-- **Componentes**:
-  - Main application
-  - Router configuration
-  - Middlewares
 
-## 🔄 Fluxo de Dados
+##  Arquitetura
 
-```
-HTTP Request → Router → Handler → Use Case → Repository → Infrastructure
-                  ↓         ↓         ↓            ↓
-              Templates  Validation Domain     Database/FFmpeg
-```
+- Solução
+![Arquitetura AWS.jpg](Arquitetura%20AWS.jpg)
+Link para consulta: https://miro.com/app/board/uXjVGLtSdE4=/
 
-## 💡 Princípios Aplicados
 
-### 1. **Dependency Rule**
-- As dependências apontam sempre para dentro (em direção ao domínio)
-- Camadas externas dependem de camadas internas
-- Camadas internas não conhecem camadas externas
+- DDD
+![Event.jpg](Event.jpg)
+Para detalhamento de todo processo, acesse: https://miro.com/app/board/uXjVGLtSdE4=/
 
-### 2. **Dependency Inversion Principle (DIP)**
-- Use cases dependem de interfaces, não de implementações concretas
-- Repositories implementam interfaces definidas no domain
 
-### 3. **Single Responsibility Principle (SRP)**
-- Cada camada tem uma única responsabilidade
-- Handlers apenas lidam com HTTP
-- Use cases apenas lógica de negócio
-- Repositories apenas persistência
+- C4
+![C4.jpg](C4.jpg)
+Para mais detalhes, acesse: https://app.diagrams.net/#G1xioIxxJi1VVWhvkKYEgaMYCNj68RyCyw#%7B%22pageId%22%3A%22U8mRmWQbRVMD_ljyt-Tk%22%7D
 
-### 4. **Interface Segregation Principle (ISP)**
-- Interfaces específicas para cada tipo de operação
-- VideoRepository, FrameRepository, VideoProcessor
 
-## 🚀 Como Executar
+---
 
-1. **Instalar dependências**:
-```bash
-go mod download
-```
+## 🎥 Vídeo Demonstrativo
 
-2. **Executar a aplicação**:
-```bash
-go run cmd/server/main.go
-```
+Assista ao vídeo com demonstração do funcionamento da aplicação e da arquitetura: 
 
-3. **Acessar**:
-```
-http://localhost:8080
-```
 
-## 📦 Dependências
+---
 
-- **Gin**: Framework HTTP
-- **FFmpeg**: Processamento de vídeo (deve estar instalado no sistema)
+## ⚙️ Tecnologias Utilizadas
 
-## 🧪 Testabilidade
+- Go
+- Java 17
+- Spring Boot
+- Kubernetes
+- DynamoDb
+- RDS
+- SQS
+- Terraform
+- Github Actions
 
-A estrutura Clean Architecture facilita:
+---
 
-- **Unit Tests**: Testar use cases isoladamente usando mocks
-- **Integration Tests**: Testar repositórios com banco de dados de teste
-- **E2E Tests**: Testar handlers HTTP
+## 🚀 Como Executar Localmente
 
-Exemplo de teste de use case:
-```go
-// Mock repository
-type MockVideoRepository struct{}
-func (m *MockVideoRepository) Save(file multipart.File, filename string) (string, error) {
-    return "/fake/path/video.mp4", nil
-}
+1. Instale JDK 17 e Maven.
+2. Clone o repositório:
+    ```bash
+    git clone https://github.com/SOAT-FIAP-GROUP/SOAT_Pagamentos.git
+    cd SOAT_Pagamentos
+    ```
+3. Crie o banco de dados DynamoDB via terraform
 
-// Test
-func TestProcessVideo(t *testing.T) {
-    mockRepo := &MockVideoRepository{}
-    useCase := usecase.NewVideoUseCase(mockRepo, ...)
-    // Test logic...
-}
-```
+4. Execute a aplicação via Maven:
+    ```bash
+    mvn spring-boot:run
+    ```
+5. Acesse a documentação Swagger:
+    ```
+    http://localhost:8082/swagger-ui/index.html
+    ```
+## 🚀 Como Executar via Kubernetes
+1. Instalar Kubernetes com Minikube, ou
+2. Instalar Docker Desktop e ativar Kubernetes
+  - Se estiver usando **Minikube** habilite o metrics-server (necessário para HPA funcionar):
+    ```bash
+    minikube addons enable metrics-server
+    ```
+  - Aplique os manifetos YAML:
+    ```bash
+    kubectl apply -f k8s/
+    ```
+  - **Se estiver usando Minikube:**
+    ```bash
+    minikube service pagamento-service
+    ```
 
-## 📝 Benefícios da Arquitetura
+   Esse comando deve abrir automaticamente uma aba no navegador com a URL.  
+   Acesse `.../swagger-ui/index.html` no final da URL para ver a documentação dos endpoints.
 
-1. **Independência de Frameworks**: Fácil trocar Gin por outro framework
-2. **Testabilidade**: Cada camada pode ser testada isoladamente
-3. **Independência de UI**: Pode adicionar CLI, gRPC sem afetar lógica de negócio
-4. **Independência de Banco de Dados**: Trocar implementação sem afetar use cases
-5. **Manutenibilidade**: Código organizado e fácil de entender
-6. **Escalabilidade**: Fácil adicionar novos recursos
+  - **Se estiver usando Docker Desktop:**
 
-## 🔧 Extensões Futuras
+   Acesse diretamente no navegador:
 
-- Adicionar testes unitários e de integração
-- Implementar logging estruturado
-- Adicionar métricas e monitoring
-- Implementar circuit breaker para FFmpeg
-- Adicionar suporte a diferentes formatos de output
-- Implementar sistema de filas para processamento assíncrono
+  - http://localhost:30000/
+  - http://localhost:30000/swagger-ui/index.html
+
+   Neles você poderá visualizar a documentação interativa (OpenAPI/Swagger) dos endpoints disponíveis.
+
+  - Endpoints para Health Checks:
+    - Liveness Probe:
+    ```bash
+    /actuator/health/liveness
+    ```
+    - Readiness Probe:
+    ```bash
+    /actuator/health/readiness
+    ```
+
+---
+
+#### 🔍📚 Collection API (Postman)
+
+Para ter acesso aos Endpoints e exemplos faça o download da collection e importe na sua IDE de preferência:
+[Collection API](https://drive.google.com/uc?export=download&id=1xp52ZV3tcdlxPq5wG7C6tpEA4O6jXKvB)
+
+---
+
